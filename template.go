@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+
 	//	"io/ioutil"
 	"bytes"
 	"io/ioutil"
@@ -13,58 +14,43 @@ import (
 	"strings"
 )
 
-type OptionalString struct {
-	ptr *string
-}
-
-func (s OptionalString) String() string {
-	if s.ptr == nil {
-		return ""
-	}
-	return *s.ptr
-}
-
 var alwaysThere string = "always_there"
 
-func Env(key string) OptionalString {
+func Env(key string) string {
 	// We need to simulate always existing key for testing, but we do not want to pollute env
 	if key == "ALWAYS_THERE" {
-		return OptionalString{&alwaysThere}
+		return alwaysThere
 	}
 
 	value, ok := os.LookupEnv(key)
 	if !ok {
-		return OptionalString{nil}
+		return ""
 	}
-	return OptionalString{&value}
+
+	return value
 }
 
-func EnvList(key string) []OptionalString {
+func EnvList(key string) []string {
 	// We need to simulate always existing key for testing, but we do not want to pollute env
-	if key == "ALWAYS_THERE" {
-		return OptionalString{&alwaysThere}
+	if key == "ALWAYS_THERE_LIST" {
+		return []string{alwaysThere, alwaysThere}
 	}
 
 	value, ok := os.LookupEnv(key)
 	if !ok {
-		return []OptionalString{OptionalString{nil}}
+		return []string{}
 	}
-	
+
 	values := strings.Split(value, ",")
 	if len(values) == 0 {
-		return []OptionalString{OptionalString{nil}}
+		return []string{}
 	}
-	
-	optionalValues := make([]OptionalString, 0, len(values))
+
+	optionalValues := make([]string, 0, len(values))
 	for i := range values {
-		var optString *string
-		optString = &values[i]
-		if (optString == "") {
-			optstring = nil
-		}
-		optionalValues = append(optionalValues, OptionalString{optString})
+		optionalValues = append(optionalValues, values[i])
 	}
-	
+
 	return optionalValues
 }
 
@@ -75,14 +61,12 @@ func Default(args ...interface{}) (string, error) {
 		}
 		switch v := arg.(type) {
 		case string:
-			return v, nil
+			if arg.(string) != "" {
+				return v, nil
+			}
 		case *string:
 			if v != nil {
 				return *v, nil
-			}
-		case OptionalString:
-			if v.ptr != nil {
-				return *v.ptr, nil
 			}
 		default:
 			return "", fmt.Errorf("Default: unsupported type '%T'!", v)
@@ -103,10 +87,6 @@ func Require(arg interface{}) (string, error) {
 	case *string:
 		if v != nil {
 			return *v, nil
-		}
-	case OptionalString:
-		if v.ptr != nil {
-			return *v.ptr, nil
 		}
 	}
 
@@ -134,13 +114,15 @@ func generateTemplate(source, name string) (string, error) {
 }
 
 func generateFile(templatePath, destinationPath string, debugTemplates bool) error {
-	if !filepath.IsAbs(templatePath) {
-		return fmt.Errorf("Template path '%s' is not absolute!", templatePath)
-	}
+	/*
+		if !filepath.IsAbs(templatePath) {
+			return fmt.Errorf("Template path '%s' is not absolute!", templatePath)
+		}
 
-	if !filepath.IsAbs(destinationPath) {
-		return fmt.Errorf("Destination path '%s' is not absolute!", destinationPath)
-	}
+		if !filepath.IsAbs(destinationPath) {
+			return fmt.Errorf("Destination path '%s' is not absolute!", destinationPath)
+		}
+	*/
 
 	var slice []byte
 	var err error

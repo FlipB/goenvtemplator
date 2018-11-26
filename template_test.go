@@ -7,6 +7,9 @@ import (
 func TestGenerateTemplate(t *testing.T) {
 	source := `
 K={{ env "ALWAYS_THERE" }}
+{{ range envlist "ALWAYS_THERE_LIST" -}}
+L={{ . }}
+{{ end -}}
 K={{ env "NONEXISTING" }}
 K={{ .NONEXISTING }}
 K={{ default .NonExisting "default value" }}
@@ -15,6 +18,8 @@ K={{ default (env "NONEXISTING") "default value" }}
 	`
 	correctOutput := `
 K=always_there
+L=always_there
+L=always_there
 K=
 K=<no value>
 K=default value
