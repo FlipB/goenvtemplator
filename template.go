@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"log"
+	"strings"
 )
 
 type OptionalString struct {
@@ -36,6 +37,35 @@ func Env(key string) OptionalString {
 		return OptionalString{nil}
 	}
 	return OptionalString{&value}
+}
+
+func EnvList(key string) []OptionalString {
+	// We need to simulate always existing key for testing, but we do not want to pollute env
+	if key == "ALWAYS_THERE" {
+		return OptionalString{&alwaysThere}
+	}
+
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return []OptionalString{OptionalString{nil}}
+	}
+	
+	values := strings.Split(value, ",")
+	if len(values) == 0 {
+		return []OptionalString{OptionalString{nil}}
+	}
+	
+	optionalValues := make([]OptionalString, 0, len(values))
+	for i := range values {
+		var optString *string
+		optString = &values[i]
+		if (optString == "") {
+			optstring = nil
+		}
+		optionalValues = append(optionalValues, OptionalString{optString})
+	}
+	
+	return optionalValues
 }
 
 func Default(args ...interface{}) (string, error) {
@@ -87,6 +117,7 @@ var funcMap = template.FuncMap{
 	"env":     Env,
 	"default": Default,
 	"require": Require,
+	"envlist": EnvList,
 }
 
 func generateTemplate(source, name string) (string, error) {
